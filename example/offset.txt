@@ -1,0 +1,3 @@
+#nimbus_id offset0(left)[rad] offset1(right)[rad]
+1 -1.091659 -3.780703
+2 0.2515 0.0301
