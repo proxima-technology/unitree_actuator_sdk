@@ -23,58 +23,52 @@ void signal_handler(int signum) {
     keepRunning = 0;
 }
 
+std::string getEnvVarOrExit(const char* varName) {
+    char const* tmp = std::getenv(varName);
+    if (tmp == nullptr) {
+        std::cerr << "ERROR: " << varName << " が設定されていません" << std::endl;
+        std::exit(1);
+    }
+    return std::string(tmp);
+}
+
 std::vector<double> get_offset(void) {
 
     std::vector<double> memorable_offset_pos;
 
-    char const* tmp1 = getenv( "SMALL_NIMBUS_ID" );
-    char const* tmp2 = getenv( "SMALL_NIMBUS_PATH" );
-    if( tmp1==NULL )
+    std::string SMALL_SKEPTRON_ID = getEnvVarOrExit("SMALL_SKEPTRON_ID");
+    std::string SMALL_SKEPTRON_PATH = getEnvVarOrExit("SMALL_SKEPTRON_PATH");
+
+    std::cerr << "SMALL_SKEPTRON_ID: "<< SMALL_SKEPTRON_ID << std::endl;
+    std::cerr << "SMALL_SKEPTRON_PATH: "<< SMALL_SKEPTRON_PATH << std::endl;
+    std::string OFFSET_FILE = SMALL_SKEPTRON_PATH + "/hardware/unitree_actuator_sdk/example/offset.txt";
+    std::ifstream file(OFFSET_FILE);
+
+    // TODO: 現在はSMALL_NIMBUSが1号機と2号機しか存在しないことを仮定してエラー処理をしているが、これをもう少し一般的にチェックできるようにする。
+    // https://github.com/proxima-technology/small_nimbus_ws/issues/111
+    if( std::stoi(SMALL_SKEPTRON_ID)!=1 && std::stoi(SMALL_SKEPTRON_ID)!=2 )
     {
-      std::cerr << "ERROR: SMALL_NIMBUS_IDが設定されていません" << std::endl;
+      std::cerr << "ERROR: SMALL_SKEPTRON_ID should be 1 or 2" << std::endl;
       std::exit(1);
     }
-    else if( tmp2==NULL )
-    {
-      std::cerr << "ERROR: SMALL_NIMBUS_PATHが設定されていません" << std::endl;
-      std::exit(1);
-    }
-
-    else
-    {
-      std::string SMALL_NIMBUS_ID = std::getenv("SMALL_NIMBUS_ID");
-      std::string SMALL_NIMBUS_PATH = std::getenv("SMALL_NIMBUS_PATH");
-      std::cerr << "SMALL_NIMBUS_ID: "<< SMALL_NIMBUS_ID << std::endl;
-      std::cerr << "SMALL_NIMBUS_PATH: "<< SMALL_NIMBUS_PATH << std::endl;
-      std::string OFFSET_FILE = SMALL_NIMBUS_PATH + "/hardware/unitree_actuator_sdk/example/offset.txt";
-      std::ifstream file(OFFSET_FILE);
-
-      // TODO: 現在はSMALL_NIMBUSが1号機と2号機しか存在しないことを仮定してエラー処理をしているが、これをもう少し一般的にチェックできるようにする。
-      // https://github.com/proxima-technology/small_nimbus_ws/issues/111
-      if( std::stoi(SMALL_NIMBUS_ID)!=1 && std::stoi(SMALL_NIMBUS_ID)!=2 )
-      {
-        std::cerr << "ERROR: SMALL_NIMBUS_ID should be 1 or 2" << std::endl;
-        std::exit(1);
-      }
-      std::string line;
-      std::string column0, column1, column2;
-      if (file.is_open()) {
-        while (getline(file, line)) {
-          std::stringstream ss(line);
-          ss >> column0 >> column1 >> column2;
-          if (column0==SMALL_NIMBUS_ID){
-            memorable_offset_pos.push_back(std::stod(column1));
-            memorable_offset_pos.push_back(std::stod(column2));
-            break;
-          }
+    std::string line;
+    std::string column0, column1, column2;
+    if (file.is_open()) {
+      while (getline(file, line)) {
+        std::stringstream ss(line);
+        ss >> column0 >> column1 >> column2;
+        if (column0==SMALL_SKEPTRON_ID){
+          memorable_offset_pos.push_back(std::stod(column1));
+          memorable_offset_pos.push_back(std::stod(column2));
+          break;
         }
-      file.close();
-      std::cerr << "関節原点オフセットファイル\n"<< OFFSET_FILE << "\nを開くことができました。\n" << std::endl;
       }
-      else {
-        std::cerr << "ERROR: 関節原点オフセットファイル\n"<< OFFSET_FILE << "\nを開けませんでした。\n" << std::endl;
-        std::exit(1);
-      }
+    file.close();
+    std::cerr << "関節原点オフセットファイル\n"<< OFFSET_FILE << "\nを開くことができました。\n" << std::endl;
+    }
+    else {
+      std::cerr << "ERROR: 関節原点オフセットファイル\n"<< OFFSET_FILE << "\nを開けませんでした。\n" << std::endl;
+      std::exit(1);
     }
 
     return memorable_offset_pos;
@@ -105,8 +99,8 @@ void motor_thread(int index)
 
   #if DEBUG_WRITE_RAWDATA
   int write_count = 0;
-  std::string SMALL_NIMBUS_PATH = std::getenv("SMALL_NIMBUS_PATH");
-  std::string DEBUG_GOMOTOR_RAWDATA_FILE = SMALL_NIMBUS_PATH + "/hardware/unitree_actuator_sdk/debugdata/gomotor_rawdata.csv";
+  std::string SMALL_SKEPTRON_PATH = getEnvVarOrExit("SMALL_SKEPTRON_PATH");
+  std::string DEBUG_GOMOTOR_RAWDATA_FILE = SMALL_SKEPTRON_PATH + "/hardware/unitree_actuator_sdk/debugdata/gomotor_rawdata.csv";
   std::ofstream output_file;
   if(index==0)
   {
