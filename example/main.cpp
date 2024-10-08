@@ -420,7 +420,7 @@ int main(int argc, char *argv[])
   }
   std::cout<<std::endl<<"connecting test: all motor passed!"<<std::endl<<std::endl;  
   usleep(1000000);
-  #endifp
+  #endif
   */
 
   std::cout<<std::endl<<"main program start"<<std::endl<<std::endl;  
