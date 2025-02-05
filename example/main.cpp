@@ -107,7 +107,16 @@ void motor_thread(int index)
     output_file.open(DEBUG_GOMOTOR_RAWDATA_FILE,std::ios::out);
   }
   #endif
-  
+
+  int actuator_status = -1;
+  if(ENABLE_LEGMOTOR > 0)
+  {
+    actuator_status = READY_FOR_ACTUATION_STATUS_IDX;
+  }
+  else
+  {
+    actuator_status = DISABLED_BY_CONFIG_STATUS_IDX;
+  }
 
   #if (ENABLE_LEGMOTOR > 0)
   SerialPort serial(legmotor_device[index]);
@@ -145,6 +154,7 @@ void motor_thread(int index)
   legmotor_sensor_shared[VELOCITY_OBS_IDX*NUM_LEGMOTOR + index] = data.dq/6.33;
   legmotor_sensor_shared[TORQUE_OBS_IDX*NUM_LEGMOTOR + index] = data.tau*6.33;
   legmotor_sensor_shared[TEMPERATURE_OBS_IDX*NUM_LEGMOTOR + index] = data.temp;
+  legmotor_sensor_shared[STATUS_OBS_IDX*NUM_LEGMOTOR + index] = actuator_status;
   // reverse just after read
   if(1==index)
   {
@@ -234,6 +244,7 @@ void motor_thread(int index)
     legmotor_sensor_shared[VELOCITY_OBS_IDX*NUM_LEGMOTOR + index] = data.dq/6.33;
     legmotor_sensor_shared[TORQUE_OBS_IDX*NUM_LEGMOTOR + index] = data.tau*6.33;
     legmotor_sensor_shared[TEMPERATURE_OBS_IDX*NUM_LEGMOTOR + index] = data.temp;
+    legmotor_sensor_shared[STATUS_OBS_IDX*NUM_LEGMOTOR + index] = actuator_status;
     // reverse just after read
     if(1==index)
     {
