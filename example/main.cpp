@@ -36,30 +36,34 @@ std::vector<double> get_offset(void) {
 
     std::vector<double> memorable_offset_pos;
 
-    std::string SMALL_SKEPTRON_ID = getEnvVarOrExit("SMALL_SKEPTRON_ID");
-    std::string SMALL_SKEPTRON_PATH = getEnvVarOrExit("SMALL_SKEPTRON_PATH");
+    std::string MIDDLE_SKEPTRON_ID = getEnvVarOrExit("MIDDLE_SKEPTRON_ID");
+    std::string MIDDLE_SKEPTRON_PATH = getEnvVarOrExit("MIDDLE_SKEPTRON_PATH");
 
-    std::cerr << "SMALL_SKEPTRON_ID: "<< SMALL_SKEPTRON_ID << std::endl;
-    std::cerr << "SMALL_SKEPTRON_PATH: "<< SMALL_SKEPTRON_PATH << std::endl;
-    std::string OFFSET_FILE = SMALL_SKEPTRON_PATH + "/hardware/offset.txt";
+    std::cerr << "MIDDLE_SKEPTRON_ID: "<< MIDDLE_SKEPTRON_ID << std::endl;
+    std::cerr << "MIDDLE_SKEPTRON_PATH: "<< MIDDLE_SKEPTRON_PATH << std::endl;
+    std::string OFFSET_FILE = MIDDLE_SKEPTRON_PATH + "/hardware/offset.txt";
     std::ifstream file(OFFSET_FILE);
 
-    // TODO: 現在はSMALL_NIMBUSが1号機と2号機しか存在しないことを仮定してエラー処理をしているが、これをもう少し一般的にチェックできるようにする。
+    // TODO: 現在はMIDDLE_SKEPTRONが1号機しか存在しないことを仮定してエラー処理をしているが、これをもう少し一般的にチェックできるようにする。
     // https://github.com/proxima-technology/small_nimbus_ws/issues/111
-    if( std::stoi(SMALL_SKEPTRON_ID)!=1 && std::stoi(SMALL_SKEPTRON_ID)!=2 )
+    if( std::stoi(MIDDLE_SKEPTRON_ID)!=1 )
     {
-      std::cerr << "ERROR: SMALL_SKEPTRON_ID should be 1 or 2" << std::endl;
+      std::cerr << "ERROR: MIDDLE_SKEPTRON_ID should be 1" << std::endl;
       std::exit(1);
     }
     std::string line;
-    std::string column0, column1, column2;
+    std::string column0, column1, column2, column3, column4, column5, column6;
     if (file.is_open()) {
       while (getline(file, line)) {
         std::stringstream ss(line);
-        ss >> column0 >> column1 >> column2;
-        if (column0==SMALL_SKEPTRON_ID){
+        ss >> column0 >> column1 >> column2 >> column3 >> column4 >> column5 >> column6; // TODO: fix hard coding
+        if (column0==MIDDLE_SKEPTRON_ID){
           memorable_offset_pos.push_back(std::stod(column1));
           memorable_offset_pos.push_back(std::stod(column2));
+          memorable_offset_pos.push_back(std::stod(column3));
+          memorable_offset_pos.push_back(std::stod(column4));
+          memorable_offset_pos.push_back(std::stod(column5));
+          memorable_offset_pos.push_back(std::stod(column6));
           break;
         }
       }
@@ -75,7 +79,7 @@ std::vector<double> get_offset(void) {
 }
 
 const char* legmotor_device[NUM_LEGMOTOR]= { "/dev/ttyUSB0", "/dev/ttyUSB1" };
-const int legmotor_id[NUM_LEGMOTOR] = {0,1};
+const int legmotor_id[NUM_LEGMOTOR] = {0,1,2,3,4,5};
 std::vector<double> memorable_offset_pos = get_offset();
 std::vector<double> legmotor_sensor_shared(num_data_legmotor_sensor, 0.0);
 std::vector<double> legmotor_command_shared(num_data_legmotor_command, 0.0);
@@ -99,8 +103,8 @@ void motor_thread(int index)
 
   #if DEBUG_WRITE_RAWDATA
   int write_count = 0;
-  std::string SMALL_SKEPTRON_PATH = getEnvVarOrExit("SMALL_SKEPTRON_PATH");
-  std::string DEBUG_GOMOTOR_RAWDATA_FILE = SMALL_SKEPTRON_PATH + "/hardware/unitree_actuator_sdk/debugdata/gomotor_rawdata.csv";
+  std::string MIDDLE_SKEPTRON_PATH = getEnvVarOrExit("MIDDLE_SKEPTRON_PATH");
+  std::string DEBUG_GOMOTOR_RAWDATA_FILE = MIDDLE_SKEPTRON_PATH + "/hardware/unitree_actuator_sdk/debugdata/gomotor_rawdata.csv";
   std::ofstream output_file;
   if(index==0)
   {
@@ -206,7 +210,7 @@ void motor_thread(int index)
     double torque_control_for_print = torque_control;
     double target_pos_for_print = target_pos;
     double target_vel_for_print = target_vel;
-    if(1==index)
+    if( 4==index || 5==index )
     {
       torque_control = - torque_control;
       target_pos = - target_pos;
@@ -246,14 +250,14 @@ void motor_thread(int index)
     legmotor_sensor_shared[TEMPERATURE_OBS_IDX*NUM_LEGMOTOR + index] = data.temp;
     legmotor_sensor_shared[STATUS_OBS_IDX*NUM_LEGMOTOR + index] = actuator_status;
     // reverse just after read
-    if(1==index)
+    if( 4==index || 5==index )
     {
       legmotor_sensor_shared[POSITION_OBS_IDX*NUM_LEGMOTOR + index] = - legmotor_sensor_shared[POSITION_OBS_IDX*NUM_LEGMOTOR + index];
       legmotor_sensor_shared[VELOCITY_OBS_IDX*NUM_LEGMOTOR + index] = - legmotor_sensor_shared[VELOCITY_OBS_IDX*NUM_LEGMOTOR + index];
       legmotor_sensor_shared[TORQUE_OBS_IDX*NUM_LEGMOTOR + index] = - legmotor_sensor_shared[TORQUE_OBS_IDX*NUM_LEGMOTOR + index];
     }
 
-    if(0==index)
+    if(0==index )
     {
       proc_comm_sensor->write_stdvec(legmotor_sensor_shared);
     }
@@ -383,6 +387,34 @@ void *legmotor1_thread(void *)
   return NULL;
 }
 
+void *legmotor2_thread(void *)
+{
+  motor_thread(2);
+  std::cout<<std::endl<<"legmotor2_thread finish!"<<std::endl<<std::endl;
+  return NULL;
+}
+
+void *legmotor3_thread(void *)
+{
+  motor_thread(3);
+  std::cout<<std::endl<<"legmotor3_thread finish!"<<std::endl<<std::endl;
+  return NULL;
+}
+
+void *legmotor4_thread(void *)
+{
+  motor_thread(4);
+  std::cout<<std::endl<<"legmotor4_thread finish!"<<std::endl<<std::endl;
+  return NULL;
+}
+
+void *legmotor5_thread(void *)
+{
+  motor_thread(5);
+  std::cout<<std::endl<<"legmotor5_thread finish!"<<std::endl<<std::endl;
+  return NULL;
+}
+
 void test_connection(int index)
 {
   std::cout<<std::endl<<"connecting test: motor index ="<<index<<std::endl;  
@@ -436,13 +468,19 @@ int main(int argc, char *argv[])
 
   std::cout<<std::endl<<"main program start"<<std::endl<<std::endl;  
   pthread_mutex_init(&legmotor_localmutex, NULL);
-  pthread_t legmotor0_tid, legmotor1_tid;
+  pthread_t legmotor0_tid, legmotor1_tid, legmotor2_tid, legmotor3_tid, legmotor4_tid, legmotor5_tid;
   pthread_create(&legmotor0_tid, NULL, legmotor0_thread, NULL);
   pthread_create(&legmotor1_tid, NULL, legmotor1_thread, NULL);
+  pthread_create(&legmotor2_tid, NULL, legmotor2_thread, NULL);
+  pthread_create(&legmotor3_tid, NULL, legmotor3_thread, NULL);
+  pthread_create(&legmotor4_tid, NULL, legmotor4_thread, NULL);
+  pthread_create(&legmotor5_tid, NULL, legmotor5_thread, NULL);
   pthread_join(legmotor0_tid,NULL);
   pthread_join(legmotor1_tid,NULL);
-
-
+  pthread_join(legmotor2_tid,NULL);
+  pthread_join(legmotor3_tid,NULL);
+  pthread_join(legmotor4_tid,NULL);
+  pthread_join(legmotor5_tid,NULL);
   std::cout<<std::endl<<"main program finish!"<<std::endl<<std::endl;
   return 0;
 }
