@@ -78,7 +78,7 @@ std::vector<double> get_offset(void) {
     return memorable_offset_pos;
 }
 
-const char* legmotor_device[NUM_LEGMOTOR]= { "/dev/ttyUSB0", "/dev/ttyUSB1" };
+const char* legmotor_device[NUM_LEGMOTOR]= { "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3", "/dev/ttyUSB4", "/dev/ttyUSB5" };
 const int legmotor_id[NUM_LEGMOTOR] = {0,1,2,3,4,5};
 std::vector<double> memorable_offset_pos = get_offset();
 std::vector<double> legmotor_sensor_shared(num_data_legmotor_sensor, 0.0);
