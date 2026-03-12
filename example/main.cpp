@@ -254,6 +254,7 @@ void motor_thread(int usb_port_index)
 
     // set cmd
     double torque_max = 23.5;
+    double torque_limit = 9.0; // 参考：9 Nmは倒立を約300s程度続けて58℃
     for(int i=0; i<NUM_MOTOR_PER_USB_PORT; i++)
     {
       int motor_id = usb_port_index*NUM_MOTOR_PER_USB_PORT + i;
@@ -286,6 +287,13 @@ void motor_thread(int usb_port_index)
       cmd[i].dq     = (float) target_vel[i] * 6.33;
       cmd[i].kp   = (float) kp[i] / ( 6.33 * 6.33 );
       cmd[i].kd   = (float) kd[i] / ( 6.33 * 6.33 );
+      // safety for position control. Torque limit
+      double torque_estimate = cmd[i].kp*( target_pos[i]  - measured_pos[i])* 6.33 * 6.33; //+ cmd[i].kd*( target_vel[i] - measured_vel[i]);
+      cmd[i].kp = (float) std::min(1.0, torque_limit/std::abs(torque_estimate)) * cmd[i].kp;
+      // std::cout 
+      // << "error_pos:" << target_pos[i] - runtime_offset_pos[i] - measured_pos[i]
+      // << ", torque_estimate: " << torque_estimate
+      // << std::endl;
       #endif
 
       #if (ENABLE_LEGMOTOR > 0)
@@ -342,6 +350,11 @@ void motor_thread(int usb_port_index)
           std::cout
           <<"["<<usb_port_index<<"]"<<"["<<i<<"]"
           <<" torque_control: "<<torque_control_for_print[i]<<std::endl;
+          // std::cout // debug
+          // <<"["<<usb_port_index<<"]"<<"["<<i<<"]" 
+          // << "error_pos:" << target_pos[i] - measured_pos[i]
+          // << ", torque_estimate: " << cmd[i].kp*( target_pos[i] - measured_pos[i]) * 6.33 * 6.33
+          // << std::endl;
         std::cout
           <<"["<<usb_port_index<<"]"<<"["<<i<<"]"
           <<" target_pos: "<<target_pos_for_print[i]
